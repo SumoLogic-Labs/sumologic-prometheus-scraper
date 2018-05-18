@@ -3,7 +3,7 @@ The Sumo Logic Prometheus Scraper provides a configurable general purpose mechan
 
 ## Support
 
-The code in this repository has been developed in collaboration with the Sumo Logic community and is not supported via standard Sumo Logic Support channels. For any issues or questions please submit an issue directly on GitHub or start a conversation within the Sumo Logic Community forums. The maintainers of this project will work directly with the community to answer any questions, address bugs, or review any requests for new features. 
+The code in this repository has been developed in collaboration with the Sumo Logic community and is not supported via standard Sumo Logic Support channels. For any issues or questions please submit an issue directly on GitHub. The maintainers of this project will work directly with the community to answer any questions, address bugs, or review any requests for new features. 
 
 ## License
 Released under Apache 2.0 License.
