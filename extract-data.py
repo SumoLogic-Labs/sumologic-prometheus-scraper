@@ -68,12 +68,23 @@ class SumoPrometheusScraper:
         if 'url' not in target or target['url'] is None:
             log.error("Target config url is not defined: {0}".format(target))
             sys.exit(os.EX_CONFIG)
+        if 'name' not in target or target['name'] is None:
+            log.error("Target config name is not defined: {0}".format(target))
+            sys.exit(os.EX_CONFIG)
 
     def __scrape_metrics(self, target):
-        prometheus_metrics = requests.get(target['url']).content.decode('utf-8').split('\n')
         scrape_time = int(time.time())
-        return self.__format_prometheus_to_carbon2(prometheus_metrics=prometheus_metrics, scrape_time=scrape_time,
-                                                   target_config=target)
+        metrics = []
+        try:
+            prometheus_metrics = requests.get(target['url']).content.decode('utf-8').split('\n')
+            metrics = self.__format_prometheus_to_carbon2(prometheus_metrics=prometheus_metrics,
+                                                          scrape_time=scrape_time,
+                                                          target_config=target)
+            metrics.append("metric=up instance={0} job={1}  1 {2}".format(target['url'], target['name'], scrape_time))
+        except Exception as e:
+            log.error("unable to scrape metrics from target {0}: {1}".format(target['name'], e))
+            metrics.append("metric=up instance={0} job={1}  0 {2}".format(target['url'], target['name'], scrape_time))
+        return metrics
 
     @staticmethod
     def __format_prometheus_to_carbon2(prometheus_metrics, scrape_time, target_config):
@@ -82,16 +93,24 @@ class SumoPrometheusScraper:
             for family in text_string_to_metric_families(metric_string):
                 for sample in family.samples:
                     metric_data = "{0}::{1}::{2}".format(*sample).split("::")
-                    if metric_data[0] not in target_config.get('exclude_metrics', []):
-                        carbon2_metric = "metric={0} ".format(metric_data[0])
-                        for attr, value in ast.literal_eval(metric_data[1]).items():
-                            if value == "":  # carbon2 format cannot accept empty values
-                                value = "none"
-                            if " " in value:  # carbon2 format cannot accept values with spaces
-                                value = value.replace(" ", "_")
-                            carbon2_metric += "{0}={1} ".format(attr, value)
+                    carbon2_metric = "metric={0} ".format(metric_data[0])
+                    for attr, value in ast.literal_eval(metric_data[1]).items():
+                        if value == "":  # carbon2 format cannot accept empty values
+                            value = "none"
+                        if " " in value:  # carbon2 format cannot accept values with spaces
+                            value = value.replace(" ", "_")
+                        carbon2_metric += "{0}={1} ".format(attr, value)
+                    if metric_data[2].lower() == "nan":  # carbon2 format cannot accept NaN values
+                        carbon2_metric += " {0} {1}".format(0, scrape_time)
+                    else:
                         carbon2_metric += " {0} {1}".format(metric_data[2], scrape_time)
-                        metrics.append(carbon2_metric)
+                    if not len(target_config.get('include_metrics', [])) == 0:
+                        if metric_data[0] in target_config['include_metrics']:
+                            if metric_data[0] not in target_config.get('exclude_metrics', []):
+                                metrics.append(carbon2_metric)
+                    else:
+                        if metric_data[0] not in target_config.get('exclude_metrics', []):
+                            metrics.append(carbon2_metric)
         return metrics
 
     @staticmethod
