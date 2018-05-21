@@ -8,6 +8,8 @@ import sys
 import time
 
 from prometheus_client.parser import text_string_to_metric_families
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
 
 logging.basicConfig(level="INFO", format="%(asctime)s [level=%(levelname)s] [line=%(lineno)d]: %(message)s")
 log = logging.getLogger(__name__)
@@ -76,7 +78,7 @@ class SumoPrometheusScraper:
         scrape_time = int(time.time())
         metrics = []
         try:
-            response = requests.get(target['url'])
+            response = self.__requests_retry_session().get(target['url'])
             if response.status_code != 200:
                 log.error("received status code {0} from target {1}: {2}".format(response.status_code, target['name'],
                                                                                  response.content))
@@ -90,6 +92,21 @@ class SumoPrometheusScraper:
             log.error("unable to scrape metrics from target {0}: {1}".format(target['name'], e))
             metrics.append("metric=up instance={0} job={1}  0 {2}".format(target['url'], target['name'], scrape_time))
         return metrics
+
+    @staticmethod
+    def __requests_retry_session(retries=5, backoff_factor=0.5, status_forcelist=None, session=None):
+        session = session or requests.Session()
+        retry = Retry(
+            total=retries,
+            read=retries,
+            connect=retries,
+            backoff_factor=backoff_factor,
+            status_forcelist=status_forcelist,
+        )
+        adapter = HTTPAdapter(max_retries=retry)
+        session.mount('http://', adapter)
+        session.mount('https://', adapter)
+        return session
 
     @staticmethod
     def __format_prometheus_to_carbon2(prometheus_metrics, scrape_time, target_config):
