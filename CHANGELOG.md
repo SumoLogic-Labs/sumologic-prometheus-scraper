@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file. 
 
+# [0.0.3] (2018-05-18)
+
+  * Better error handling on request to target for data.
+
 # [0.0.2] (2018-05-18)
 
   * Add ability to include metrics explicitly, in addition to current exclusion logic in each target definition.  

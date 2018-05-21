@@ -76,7 +76,12 @@ class SumoPrometheusScraper:
         scrape_time = int(time.time())
         metrics = []
         try:
-            prometheus_metrics = requests.get(target['url']).content.decode('utf-8').split('\n')
+            response = requests.get(target['url'])
+            if response.status_code != 200:
+                log.error("received status code {0} from target {1}: {2}".format(response.status_code, target['name'],
+                                                                                 response.content))
+                raise Exception
+            prometheus_metrics = response.content.decode('utf-8').split('\n')
             metrics = self.__format_prometheus_to_carbon2(prometheus_metrics=prometheus_metrics,
                                                           scrape_time=scrape_time,
                                                           target_config=target)
