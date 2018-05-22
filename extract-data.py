@@ -78,7 +78,13 @@ class SumoPrometheusScraper:
         scrape_time = int(time.time())
         metrics = []
         try:
-            response = self.__requests_retry_session().get(target['url'])
+            headers = {}
+            if 'token_file_path' in target:
+                with open(target['token_file_path'], 'r') as token_file:
+                    headers['Authorization'] = "Bearer {0}".format(token_file.read())
+            response = self.__requests_retry_session().get(url=target['url'],
+                                                           verify=target.get('verify', None),
+                                                           headers=headers)
             if response.status_code != 200:
                 log.error("received status code {0} from target {1}: {2}".format(response.status_code, target['name'],
                                                                                  response.content))

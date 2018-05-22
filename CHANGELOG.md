@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file. 
 
+# [0.0.5] (2018-05-18)
+
+  * Add support for verify cert and token.
+
 # [0.0.4] (2018-05-18)
 
   * Add retry logic to all target calls.
