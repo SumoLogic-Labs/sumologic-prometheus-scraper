@@ -6,4 +6,4 @@ RUN pip install --upgrade pip requests pip prometheus_client
 
 COPY sumologic_prometheus_scraper.py /opt/sumo/
 
-CMD ["python", "/opt/sumo/extract-data.py"]
+CMD ["python", "/opt/sumo/sumologic_prometheus_scraper.py"]
