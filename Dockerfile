@@ -4,6 +4,6 @@ RUN mkdir /opt/sumo
 
 RUN pip install --upgrade pip requests pip prometheus_client
 
-COPY extract-data.py /opt/sumo/
+COPY sumologic_prometheus_scraper.py /opt/sumo/
 
 CMD ["python", "/opt/sumo/extract-data.py"]

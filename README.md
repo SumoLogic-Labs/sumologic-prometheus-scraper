@@ -78,11 +78,15 @@ In this step you create, on the Sumo service, an HTTP endpoint to receive your l
 4. When you have configured the HTTP source, Sumo will display the URL of the HTTP endpoint. Make a note of the URL. You will use it when you configure the script to send data to Sumo. 
 
 #### Deploy the script as you want to
-The script requires the following environment variables to be set.
+The script can be configured with the following environment variables to be set.
 
-| Variable            | Description                                            | Required | DEFAULT VALUE    |
-| --------            | -----------                                            | -------- | -------------    |
-| `CONFIG_PATH`       | The path to the configuration file                     | YES      |  `./config.json` |
+| Variable            | Description                                                  | Required | DEFAULT VALUE    |
+| --------            | -----------                                                  | -------- | -------------    |
+| `CONFIG_PATH`       | The path to the configuration file.                          | YES      |  `./config.json` |
+| `TARGET_THREADS`    | The number of threads to use to process the targets.         | NO       |  `10`            | 
+| `POST_THREADS`      | The number of threads to use to when posting to Sumo Logic.  | NO       |  `10`            |
+| `BATCH_SIZE`        | The number of metrics per batch when posting to Sumo Logic.  | NO       |  `1000`          |
+| `LOGGING_LEVEL`     | The logging level.                                           | NO       |  `INFO`          |
 
 ##### Running locally
 
