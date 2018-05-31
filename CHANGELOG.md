@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file. 
 
+# [0.0.6] (2018-05-30)
+
+  * async calls for targets and sending to sumo, add retry logic for posting to sumo.
+
 # [0.0.5] (2018-05-18)
 
   * Add support for verify cert and token.
