@@ -1,4 +1,4 @@
-FROM python:3.6.3
+FROM python:3.6.6-alpine3.7
 
 RUN mkdir /opt/sumo
 

@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file. 
 
+# [0.0.8] (2018-06-05)
+
+  * switch to alpine image
+  * ensure job and instance are part of dimensions so they are included with all metrcs
+
 # [0.0.7] (2018-06-05)
 
   * build in scheduling logic and allow targets to specify the interval they should run.

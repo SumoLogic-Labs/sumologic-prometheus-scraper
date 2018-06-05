@@ -65,12 +65,10 @@ class SumoPrometheusScraper:
             prometheus_metrics = resp.content.decode('utf-8').split('\n')
             metrics = self._format_prometheus_to_carbon2(prometheus_metrics=prometheus_metrics, scrape_time=scrape_time,
                                                          target_config=target_config)
-            metrics.append("metric=up instance={0} job={1}  1 {2}".format(target_config['url'], target_config['name'],
-                                                                          scrape_time))
+            metrics.append("metric=up  1 {0}".format(scrape_time))
         except Exception as e:
             log.error("unable to scrape metrics from target {0}: {1}".format(target_config['name'], e))
-            metrics.append("metric=up instance={0} job={1}  0 {2}".format(target_config['url'], target_config['name'],
-                                                                          scrape_time))
+            metrics.append("metric=up  0 {0}".format(scrape_time))
         return metrics
 
     @staticmethod
@@ -136,10 +134,14 @@ class SumoPrometheusScraper:
             headers['X-Sumo-Host'] = global_config['source_host']
         if 'source_host' in target_config:
             headers['X-Sumo-Host'] = target_config['source_host']
+
+        dimensions = "job={0},instance={1}".format(target_config['name'], target_config['url'])
         if 'dimensions' in global_config:
-            headers['X-Sumo-Dimensions'] = global_config['dimensions']
+            dimensions = "job={0},instance={1},{2}".format(target_config['name'], target_config['url'], global_config['dimensions'])
         if 'dimensions' in target_config:
-            headers['X-Sumo-Dimensions'] = target_config['dimensions']
+            dimensions = "job={0},instance={1},{2}".format(target_config['name'], target_config['url'], target_config['dimensions'])
+        headers['X-Sumo-Dimensions'] = dimensions
+
         if 'metadata' in global_config:
             headers['X-Sumo-Metadata'] = global_config['metadata']
         if 'metadata' in target_config:
