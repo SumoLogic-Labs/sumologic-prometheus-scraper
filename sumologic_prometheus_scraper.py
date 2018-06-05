@@ -222,7 +222,7 @@ def validate_target(target_config):
 
 if __name__ == '__main__':
     user_config = validate_and_load_config(os.environ.get('CONFIG_PATH', './config.json'))
-    scheduler = BlockingScheduler()
+    scheduler = BlockingScheduler(timezone='UTC')
     for target in user_config.get('targets', []):
         validate_target(target)
         config = {'sumo_http_url': user_config.get('sumo_http_url', None)}
