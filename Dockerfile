@@ -1,6 +1,6 @@
 FROM python:3.6.5-alpine3.7
 
-RUN mkdir /opt/sumo
+RUN mkdir -p /opt/sumo
 
 RUN pip install --upgrade pip requests prometheus_client apscheduler
 
