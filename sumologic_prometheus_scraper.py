@@ -18,8 +18,9 @@ from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 
 logging_level = os.environ.get("LOGGING_LEVEL", "INFO")
-logging.basicConfig(level=logging_level,
-                    format="%(asctime)s [level=%(levelname)s] [thread=%(threadName)s] [line=%(lineno)d]: %(message)s")
+logging_format = \
+    "%(asctime)s [level=%(levelname)s] [thread=%(threadName)s] [module=%(module)s] [line=%(lineno)d]: %(message)s"
+logging.basicConfig(level=logging_level, format=logging_format)
 log = logging.getLogger(__name__)
 
 
@@ -33,65 +34,45 @@ class SumoPrometheusScraper:
 
     def run(self):
         request_start = datetime.now()
-        for scrape_target in self.config['targets']:
-            target_start = datetime.now()
-            log.info("target={0}  fetching data".format(scrape_target['name']))
-            metrics = self.scrape_metrics(scrape_target)
-            log.info("target={0}  will send {1} metrics to sumo".format(scrape_target['name'], len(metrics)))
-            batches = list(self.chunk_metrics(metrics_list=metrics, batch_size=self.batch_size))
-            headers = self._get_headers(global_config=self.config.get('global', {}), target_config=scrape_target)
-            log.debug("target={0}  pushing to sumo with headers: {1}".format(scrape_target['name'], headers))
-            event_loop = asyncio.new_event_loop()
-            event_loop.run_until_complete(self._post_to_sumo(batches=batches, headers=headers,
-                                                             target_name=scrape_target['name']))
-            log.info("target={0}  time taken: {1}".format(scrape_target['name'], datetime.now() - target_start))
+        for target in self.config['targets']:
+            self.process_target(target_config=target)
         log.info("total time taken: {0}".format(datetime.now() - request_start))
+
+    def process_target(self, target_config):
+        target_start = datetime.now()
+        log.info("target={0}  fetching data".format(target_config['name']))
+        metrics = self.scrape_metrics(target_config)
+        log.info("target={0}  will send {1} metrics to sumo".format(target_config['name'], len(metrics)))
+        batches = list(self.chunk_metrics(metrics_list=metrics, batch_size=self.batch_size))
+        headers = self._get_headers(global_config=self.config.get('global', {}), target_config=target_config)
+        log.debug("target={0}  pushing to sumo with headers: {1}".format(target_config['name'], headers))
+        event_loop = asyncio.new_event_loop()
+        event_loop.run_until_complete(self._post_to_sumo(
+            batches=batches, headers=headers, target_name=target_config['name']))
+        log.info("target={0}  time taken: {1}".format(target_config['name'], datetime.now() - target_start))
 
     def scrape_metrics(self, target_config):
         scrape_time = int(time.time())
-        metrics = []
+        carbon2_metrics = []
         try:
             headers = {}
             if 'token_file_path' in target_config:
                 with open(target_config['token_file_path'], 'r') as token_file:
                     headers['Authorization'] = "Bearer {0}".format(token_file.read())
-            resp = self._requests_retry_session().get(url=target_config['url'],
-                                                      verify=target_config.get('verify', None), headers=headers)
+            resp = self._requests_retry_session().get(
+                url=target_config['url'], verify=target_config.get('verify', None), headers=headers)
             if resp.status_code != 200:
-                log.error("received status code {0} from target {1}: {2}".format(resp.status_code,
-                                                                                 target_config['name'],
-                                                                                 resp.content))
+                log.error("received status code {0} from target {1}: {2}".format(
+                    resp.status_code, target_config['name'], resp.content))
                 raise Exception
             prometheus_metrics = resp.content.decode('utf-8').split('\n')
-            metrics = self._format_prometheus_to_carbon2(prometheus_metrics=prometheus_metrics, scrape_time=scrape_time,
-                                                         target_config=target_config)
-            metrics.append("metric=up  1 {0}".format(scrape_time))
+            carbon2_metrics = self._format_prometheus_to_carbon2(
+                prometheus_metrics=prometheus_metrics, scrape_time=scrape_time, target_config=target_config)
+            carbon2_metrics.append("metric=up  1 {0}".format(scrape_time))
         except Exception as e:
             log.error("unable to scrape metrics from target {0}: {1}".format(target_config['name'], e))
-            metrics.append("metric=up  0 {0}".format(scrape_time))
-        return metrics
-
-    @staticmethod
-    def chunk_metrics(metrics_list, batch_size):
-        for i in range(0, len(metrics_list), batch_size):
-            yield "\n".join(metrics_list[i:i + batch_size])
-
-    async def _post_to_sumo(self, batches, headers, target_name):
-        with concurrent.futures.ThreadPoolExecutor(max_workers=self.post_threads) as executor:
-            event_loop = asyncio.get_event_loop()
-            futures = [
-                event_loop.run_in_executor(
-                    executor,
-                    self._compress_and_send,
-                    idx,
-                    batch,
-                    headers,
-                    target_name
-                )
-                for idx, batch in enumerate(batches)
-            ]
-        for _ in await asyncio.gather(*futures):
-            pass
+            carbon2_metrics.append("metric=up  0 {0}".format(scrape_time))
+        return carbon2_metrics
 
     @staticmethod
     def _format_prometheus_to_carbon2(prometheus_metrics, scrape_time, target_config):
@@ -110,7 +91,7 @@ class SumoPrometheusScraper:
                             value = value.replace(" ", "_")
                         carbon2_metric += "{0}={1} ".format(attr, value)
                     carbon2_metric += " {0} {1}".format(metric_data[2], scrape_time)
-                    if not len(target_config.get('include_metrics', [])) == 0:
+                    if len(target_config.get('include_metrics', [])) != 0:
                         if metric_data[0] in target_config['include_metrics']:
                             if metric_data[0] not in target_config.get('exclude_metrics', []):
                                 metrics.append(carbon2_metric)
@@ -118,6 +99,21 @@ class SumoPrometheusScraper:
                         if metric_data[0] not in target_config.get('exclude_metrics', []):
                             metrics.append(carbon2_metric)
         return metrics
+
+    @staticmethod
+    def chunk_metrics(metrics_list, batch_size):
+        for i in range(0, len(metrics_list), batch_size):
+            yield "\n".join(metrics_list[i:i + batch_size])
+
+    async def _post_to_sumo(self, batches, headers, target_name):
+        with concurrent.futures.ThreadPoolExecutor(max_workers=self.post_threads) as executor:
+            event_loop = asyncio.get_event_loop()
+            futures = [
+                event_loop.run_in_executor(executor, self._compress_and_send, idx, batch, headers, target_name)
+                for idx, batch in enumerate(batches)
+            ]
+        for _ in await asyncio.gather(*futures):
+            pass
 
     @staticmethod
     def _get_headers(global_config, target_config):
@@ -137,9 +133,11 @@ class SumoPrometheusScraper:
 
         dimensions = "job={0},instance={1}".format(target_config['name'], target_config['url'])
         if 'dimensions' in global_config:
-            dimensions = "job={0},instance={1},{2}".format(target_config['name'], target_config['url'], global_config['dimensions'])
+            dimensions = "job={0},instance={1},{2}".format(
+                target_config['name'], target_config['url'], global_config['dimensions'])
         if 'dimensions' in target_config:
-            dimensions = "job={0},instance={1},{2}".format(target_config['name'], target_config['url'], target_config['dimensions'])
+            dimensions = "job={0},instance={1},{2}".format(
+                target_config['name'], target_config['url'], target_config['dimensions'])
         headers['X-Sumo-Dimensions'] = dimensions
 
         if 'metadata' in global_config:
@@ -154,24 +152,19 @@ class SumoPrometheusScraper:
         compressed_batch = gzip.compress(data=batch.encode(encoding='utf-8'), compresslevel=1)
         compressed_size = sys.getsizeof(compressed_batch) / 1024 / 1024
         log.debug("target={0} batch={1} size after compression: {2} mb".format(target_name, idx, compressed_size))
-        resp = self._requests_retry_session().post(url=self.config.get('sumo_http_url'), headers=headers,
-                                                   data=compressed_batch)
-        if resp.status_code != 200:
-            log.error("target={0} batch={1}  error sending batch to sumo: {2}".format(target_name, idx,
-                                                                                      resp.content))
-        else:
-            log.info("target={0} batch={1}  successfully posted batch to sumo".format(target_name, idx))
+        # resp = self._requests_retry_session().post(
+        #     url=self.config.get('sumo_http_url'), headers=headers, data=compressed_batch)
+        # if resp.status_code != 200:
+        #     log.error("target={0} batch={1}  error sending batch to sumo: {2}".format(
+        #         target_name, idx, resp.content))
+        # else:
+        #     log.info("target={0} batch={1}  successfully posted batch to sumo".format(target_name, idx))
 
     @staticmethod
-    def _requests_retry_session(retries=5, backoff_factor=0.2, status_forcelist=None, session=None):
+    def _requests_retry_session(retries=5, backoff_factor=0.2, forcelist=None, session=None):
         session = session or requests.Session()
         retry = Retry(
-            total=retries,
-            read=retries,
-            connect=retries,
-            backoff_factor=backoff_factor,
-            status_forcelist=status_forcelist,
-        )
+            total=retries, read=retries, connect=retries, backoff_factor=backoff_factor, status_forcelist=forcelist)
         adapter = HTTPAdapter(max_retries=retry)
         session.mount('http://', adapter)
         session.mount('https://', adapter)
@@ -192,7 +185,7 @@ def validate_and_load_config(config_path):
         sys.exit(os.EX_CONFIG)
     try:
         with open(config_path, 'r') as config_file:
-            configuration = json.load(config_file)
+            configuration = json.loads(os.path.expandvars(config_file.read()))
     except JSONDecodeError:
         log.error("Config file is not value JSON.")
         sys.exit(os.EX_CONFIG)
@@ -230,11 +223,11 @@ if __name__ == '__main__':
             config['global'] = user_config['global']
         config['targets'] = [target]
         interval = 60
-        if 'run_interval_seconds' in target:
-            interval = target['run_interval_seconds']
+        if 'global' in config:
+            if 'run_interval_seconds' in config['global']:
+                interval = config['global']['run_interval_seconds']
         else:
-            if 'global' in config:
-                if 'run_interval_seconds' in config['global']:
-                    interval = config['global']['run_interval_seconds']
+            if 'run_interval_seconds' in target:
+                interval = target['run_interval_seconds']
         scheduler.add_job(run, 'interval', [config], name=target['name'], id=target['name'], seconds=interval)
     scheduler.start()

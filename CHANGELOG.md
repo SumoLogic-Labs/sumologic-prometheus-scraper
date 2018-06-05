@@ -2,10 +2,15 @@
 
 All notable changes to this project will be documented in this file. 
 
+# [1.0.0] (2018-06-05)
+
+  * allow configuration to use environment variables
+  * clean up and refactoring
+
 # [0.0.8] (2018-06-05)
 
   * switch to alpine image
-  * ensure job and instance are part of dimensions so they are included with all metrcs
+  * ensure job and instance are part of dimensions so they are included with all metrics
 
 # [0.0.7] (2018-06-05)
 
