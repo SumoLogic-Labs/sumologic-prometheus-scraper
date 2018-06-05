@@ -152,13 +152,13 @@ class SumoPrometheusScraper:
         compressed_batch = gzip.compress(data=batch.encode(encoding='utf-8'), compresslevel=1)
         compressed_size = sys.getsizeof(compressed_batch) / 1024 / 1024
         log.debug("target={0} batch={1} size after compression: {2} mb".format(target_name, idx, compressed_size))
-        # resp = self._requests_retry_session().post(
-        #     url=self.config.get('sumo_http_url'), headers=headers, data=compressed_batch)
-        # if resp.status_code != 200:
-        #     log.error("target={0} batch={1}  error sending batch to sumo: {2}".format(
-        #         target_name, idx, resp.content))
-        # else:
-        #     log.info("target={0} batch={1}  successfully posted batch to sumo".format(target_name, idx))
+        resp = self._requests_retry_session().post(
+            url=self.config.get('sumo_http_url'), headers=headers, data=compressed_batch)
+        if resp.status_code != 200:
+            log.error("target={0} batch={1}  error sending batch to sumo: {2}".format(
+                target_name, idx, resp.content))
+        else:
+            log.info("target={0} batch={1}  successfully posted batch to sumo".format(target_name, idx))
 
     @staticmethod
     def _requests_retry_session(retries=5, backoff_factor=0.2, forcelist=None, session=None):
