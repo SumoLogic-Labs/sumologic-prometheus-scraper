@@ -40,26 +40,28 @@ This script can be run standalone or as a container.  In order to use the script
 | `targets`         | []   | A list of targets to scrape and sent to Sumo Logic        | No        | None    |
 
 ### Global Properties
-| Key               | Type   | Description                                                                                  | Required  | Default |
-| ---               | -----  | -----------                                                                                  | --------  | ------- |
-| `source_category` | String | The source category to assign to all data from every target, unless overridden in target.    | No        | None    | 
-| `source_host`     | String | The source host to assign to all data from every target, unless overridden in target.        | No        | None    | 
-| `source_name`     | String | The source name to assign to all data from every target, unless overridden in target.        | No        | None    | 
-| `dimensions`      | String | Additional dimensions to assign to all data from every target, unless overridden in target.  | No        | None    | 
-| `metadata`        | String | Additional metadata to assign to all data from every target, unless overridden in target.    | No        | None    | 
+| Key                      | Type   | Description                                                                                  | Required  | Default |
+| ---                      | -----  | -----------                                                                                  | --------  | ------- |
+| `run_interval_seconds`   | int    | The interval in seconds in which the target should be scraped.                               | No        | 60      | 
+| `source_category`        | String | The source category to assign to all data from every target, unless overridden in target.    | No        | None    | 
+| `source_host`            | String | The source host to assign to all data from every target, unless overridden in target.        | No        | None    | 
+| `source_name`            | String | The source name to assign to all data from every target, unless overridden in target.        | No        | None    | 
+| `dimensions`             | String | Additional dimensions to assign to all data from every target, unless overridden in target.  | No        | None    | 
+| `metadata`               | String | Additional metadata to assign to all data from every target, unless overridden in target.    | No        | None    | 
 
 ### Target Properties
-| Key               | Type      | Description                                                                                                                                           | Required  | Default | Overrides Global |
-| ---               | -----     | -----------                                                                                                                                           | --------  | ------- | ---------------- |
-| `url`             | String    | The URL for the Prometheus target to scrape.                                                                                                          | Yes       | None    | N/A              |
-| `name`            | String    | The name of the target.  Used to generate an `up` metric to show that target is up.                                                                   | Yes       | None    | N/A              |
-| `exclude_metrics` | \[String\]| A list of Strings of metric names to exclude.  Metrics with this name will not be sent to Sumo Logic.                                                 | No        | None    | N/A              |
-| `include_metrics` | \[String\]| A list of Strings of metric names to include.  Metrics with this name will not be sent to Sumo Logic, as long as they are not in the exclude list.    | No        | None    | N/A              |
-| `source_category` | String    | The source category to assign to all data from every target.  Takes precedence over global setting.                                                   | No        | None    | Yes              |
-| `source_host`     | String    | The source host to assign to all data from every target.  Takes precedence over global setting.                                                       | No        | None    | Yes              | 
-| `source_name`     | String    | The source name to assign to all data from every target.  Takes precedence over global setting.                                                       | No        | None    | Yes              | 
-| `dimensions`      | String    | Additional dimensions to assign to all data from every target.  Takes precedence over global setting.                                                 | No        | None    | Yes              | 
-| `metadata`        | String    | Additional metadata to assign to all data from every target.  Takes precedence over global setting.                                                   | No        | None    | Yes              |
+| Key                       | Type      | Description                                                                                                                                           | Required  | Default | Overrides Global |
+| ---                       | -----     | -----------                                                                                                                                           | --------  | ------- | ---------------- |
+| `url`                     | String    | The URL for the Prometheus target to scrape.                                                                                                          | Yes       | None    | N/A              |
+| `name`                    | String    | The name of the target.  Used to generate an `up` metric to show that target is up.                                                                   | Yes       | None    | N/A              |
+| `exclude_metrics`         | \[String\]| A list of Strings of metric names to exclude.  Metrics with this name will not be sent to Sumo Logic.                                                 | No        | None    | N/A              |
+| `include_metrics`         | \[String\]| A list of Strings of metric names to include.  Metrics with this name will not be sent to Sumo Logic, as long as they are not in the exclude list.    | No        | None    | N/A              |
+| `source_category`         | String    | The source category to assign to all data from every target.  Takes precedence over global setting.                                                   | No        | None    | Yes              |
+| `source_host`             | String    | The source host to assign to all data from every target.  Takes precedence over global setting.                                                       | No        | None    | Yes              | 
+| `source_name`             | String    | The source name to assign to all data from every target.  Takes precedence over global setting.                                                       | No        | None    | Yes              | 
+| `dimensions`              | String    | Additional dimensions to assign to all data from every target.  Takes precedence over global setting.                                                 | No        | None    | Yes              | 
+| `metadata`                | String    | Additional metadata to assign to all data from every target.  Takes precedence over global setting.                                                   | No        | None    | Yes              |
+| `run_interval_seconds`    | int       | The interval in seconds in which the target should be scraped.  Takes precedence over global setting.                                                 | No        | None    | Yes              |
  
  
 ### Including and Excluding metrics

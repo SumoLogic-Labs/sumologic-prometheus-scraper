@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file. 
 
+# [0.0.7] (2018-06-05)
+
+  * build in scheduling logic and allow targets to specify the interval they should run.
+  * reject NaN values
+
 # [0.0.6] (2018-05-30)
 
   * async calls for targets and sending to sumo, add retry logic for posting to sumo.
