@@ -94,11 +94,19 @@ The script can be configured with the following environment variables to be set.
 
   1. Clone this repo.
   2. Create the configuration file.  If config file is not in the same path as script, set CONFIG_PATH environment variable to config file path.
-  3. Run the script. `python extract-data.py`
+  3. Install [pipenv](https://docs.pipenv.org/#install-pipenv-today)
+  4. Create local virtualenv with all required dependencies `pipenv install`
+  5. Activate created virtualenv by running `pipenv shell`
+  6. Run the script. `./sumologic_prometheus_scraper.py`
   
 ##### Running as a Docker Container
 
 The script is packaged as a Docker Container, however the config file is still required and no default is provided.
+
+##### Updating python dependencies
+
+This project uses `Pipfile` and `Pipfile.lock` files to manage python dependencies and provide repeatable builds. 
+To update packages you should run `pipenv update` or follow [pipenv upgrade workflow](https://docs.pipenv.org/basics/#example-pipenv-upgrade-workflow)
 
 ### Common Errors
 
