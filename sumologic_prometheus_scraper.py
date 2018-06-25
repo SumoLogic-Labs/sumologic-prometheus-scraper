@@ -2,6 +2,7 @@
 
 import ast
 import asyncio
+import click
 import gzip
 import json
 import logging
@@ -18,6 +19,8 @@ from json.decoder import JSONDecodeError
 from prometheus_client.parser import text_string_to_metric_families
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
+from voluptuous import Schema, Url, Required, MultipleInvalid, All, Range, Length, IsFile
+
 
 logging_level = os.environ.get("LOGGING_LEVEL", "INFO")
 logging_format = \
@@ -26,35 +29,60 @@ logging.basicConfig(level=logging_level, format=logging_format)
 log = logging.getLogger(__name__)
 
 
+class SumoHTTPAdapter(HTTPAdapter):
+    CONFIG_TO_HEADER = (
+        'source_category', 'X-Sumo-Category', 
+        'source_name', 'X-Sumo-Name', 
+        'source_host', 'X-Sumo-Host', 
+        'metadata', 'X-Sumo-Metadata', 
+    )
+
+    def __init__(self, config, **kwds):
+        self._config = config
+        super().__init__(max_retries=retry, **kwds)
+
+    def add_headers(self, request, **kwds):
+        for config_key, header_name in self.CONFIG_TO_HEADER.items():
+            if config_key in self.config:
+                request.headers[header_name] = self.config[config_key]
+
+        dimensions = f"job={self.name},instance={self.config['url']}"        
+        if 'dimensions' in self.config:
+            dimensions += f",{self.config['dimmension']}"
+        request.headers['X-Sumo-Dimmensions'] = dimmension
+
+
 class SumoPrometheusScraper:
 
-    def __init__(self, configuration):
-        self.config = configuration
-        self.target_threads = int(os.environ.get('TARGET_THREADS', 10))
-        self.post_threads = int(os.environ.get('POST_THREADS', 10))
-        self.batch_size = int(os.environ.get('BATCH_SIZE', 1000))
+    def __init__(self, name, batch_size, **config):
+        self._config = config
+        self._name = config['name']
+        self._batch_size = config['batch_size']
+        self._sumo_session = None
+        self._scrape_session = None
+
+        retries = config['retries']
+        self._default_retry = Retry(total=retries, read=retries, connect=retries, backoff_factor=config['backoff_factor'])
+
+        self._sumo_session = requests.Session()
+        adapter = SumoHTTPAdapter(config, max_)
+        self._sumo_session.mount('http://', adapter)
+        self._sumo_session.mount('https://', adapter)
 
     def run(self):
-        request_start = datetime.now()
-        for target in self.config['targets']:
-            self.process_target(target_config=target)
-        log.info("total time taken: {0}".format(datetime.now() - request_start))
-
-    def process_target(self, target_config):
-        target_start = datetime.now()
-        log.info("target={0}  fetching data".format(target_config['name']))
-        metrics = self.scrape_metrics(target_config)
-        log.info("target={0}  will send {1} metrics to sumo".format(target_config['name'], len(metrics)))
+        start = time.monotonic()
+        log.info("target={0}  fetching data".format(self._name))
+        metrics = self.scrape_metrics()
+        log.info("target={0}  will send {1} metrics to sumo".format(self.name, len(metrics)))
         batches = list(self.chunk_metrics(metrics_list=metrics, batch_size=self.batch_size))
-        headers = self._get_headers(global_config=self.config.get('global', {}), target_config=target_config)
-        log.debug("target={0}  pushing to sumo with headers: {1}".format(target_config['name'], headers))
+        log.debug("target={0}  pushing to sumo with headers: {1}".format(self.name))
         event_loop = asyncio.new_event_loop()
         event_loop.run_until_complete(self._post_to_sumo(
-            batches=batches, headers=headers, target_name=target_config['name']))
-        log.info("target={0}  time taken: {1}".format(target_config['name'], datetime.now() - target_start))
+            batches=batches, headers=headers, target_name=self.name))
+        log.info(f"target={0}  time taken: {start - time.monotonic():%.2f}")
 
-    def scrape_metrics(self, target_config):
-        scrape_time = int(time.time())
+    def scrape_metrics(self):
+        start = time.monotonic()
         carbon2_metrics = []
         try:
             headers = {}
@@ -65,14 +93,14 @@ class SumoPrometheusScraper:
                 url=target_config['url'], verify=target_config.get('verify', None), headers=headers)
             if resp.status_code != 200:
                 log.error("received status code {0} from target {1}: {2}".format(
-                    resp.status_code, target_config['name'], resp.content))
-                raise Exception
+                    resp.status_code, self.name, resp.content))
+                resp.
             prometheus_metrics = resp.content.decode('utf-8').split('\n')
             carbon2_metrics = self._format_prometheus_to_carbon2(
                 prometheus_metrics=prometheus_metrics, scrape_time=scrape_time, target_config=target_config)
             carbon2_metrics.append("metric=up  1 {0}".format(scrape_time))
         except Exception as e:
-            log.error("unable to scrape metrics from target {0}: {1}".format(target_config['name'], e))
+            log.error("unable to scrape metrics from target {0}: {1}".format(self.name, e))
             carbon2_metrics.append("metric=up  0 {0}".format(scrape_time))
         return carbon2_metrics
 
@@ -117,36 +145,8 @@ class SumoPrometheusScraper:
         for _ in await asyncio.gather(*futures):
             pass
 
-    @staticmethod
-    def _get_headers(global_config, target_config):
-        headers = {'Content-Type': 'application/vnd.sumologic.carbon2', 'Content-Encoding': 'gzip'}
-        if 'source_category' in global_config:
-            headers['X-Sumo-Category'] = global_config['source_category']
-        if 'source_category' in target_config:
-            headers['X-Sumo-Category'] = target_config['source_category']
-        if 'source_name' in global_config:
-            headers['X-Sumo-Name'] = global_config['source_name']
-        if 'source_name' in target_config:
-            headers['X-Sumo-Name'] = target_config['source_name']
-        if 'source_host' in global_config:
-            headers['X-Sumo-Host'] = global_config['source_host']
-        if 'source_host' in target_config:
-            headers['X-Sumo-Host'] = target_config['source_host']
+    def _get_headers(self):
 
-        dimensions = "job={0},instance={1}".format(target_config['name'], target_config['url'])
-        if 'dimensions' in global_config:
-            dimensions = "job={0},instance={1},{2}".format(
-                target_config['name'], target_config['url'], global_config['dimensions'])
-        if 'dimensions' in target_config:
-            dimensions = "job={0},instance={1},{2}".format(
-                target_config['name'], target_config['url'], target_config['dimensions'])
-        headers['X-Sumo-Dimensions'] = dimensions
-
-        if 'metadata' in global_config:
-            headers['X-Sumo-Metadata'] = global_config['metadata']
-        if 'metadata' in target_config:
-            headers['X-Sumo-Metadata'] = target_config['metadata']
-        return headers
 
     def _compress_and_send(self, idx, batch, headers, target_name):
         raw_size = sys.getsizeof(batch) / 1024 / 1024
@@ -164,72 +164,65 @@ class SumoPrometheusScraper:
 
     @staticmethod
     def _requests_retry_session(retries=5, backoff_factor=0.2, forcelist=None, session=None):
-        session = session or requests.Session()
-        retry = Retry(
-            total=retries, read=retries, connect=retries, backoff_factor=backoff_factor, status_forcelist=forcelist)
-        adapter = HTTPAdapter(max_retries=retry)
-        session.mount('http://', adapter)
-        session.mount('https://', adapter)
-        return session
 
 
-def run(configuration):
-    scraper = SumoPrometheusScraper(configuration=configuration)
-    scraper.run()
 
 
-def validate_and_load_config(config_path):
-    if config_path is None:
-        log.error("No Config Path was defined.")
-        sys.exit(os.EX_CONFIG)
-    if not os.path.exists(config_path):
-        log.error("Config Path was defined but does not exist.")
-        sys.exit(os.EX_CONFIG)
+
+global_config_schema = Schema({
+    Required('run_interval_seconds', default=60): All(int, Range(min=1)),
+    Required('target_threads', default=10): All(int, Range(min=1, max=50)),
+    Required('batch_size', default=1000): All(int, Range(min=1)),
+    Required('retries', default=5): All(int, Range(min=1, max=20)),
+    Required('backoff_factor', default=0.2): All(float, Range(min=0)),
+    'source_category': str,
+    'source_host': str,
+    'source_name': str,
+    'dimensions': str,
+    'metadata': str,
+    'token_file_path': IsFile(),
+})
+
+target_config_schema = global_config_schema.extend({
+    Required('url'): Url(),  
+    Required('name'): str,
+})
+
+config_schema = Schema({
+   Required('sumo_http_url'): Url(),
+   Required('global', default={}): global_config_schema,
+   Required('targets'): All(Length(min=1), [target_config_schema])
+})
+
+
+def validate_config_file(ctx, param, value):
     try:
-        with open(config_path, 'r') as config_file:
-            configuration = json.loads(os.path.expandvars(config_file.read()))
-    except JSONDecodeError:
-        log.error("Config file is not value JSON.")
-        sys.exit(os.EX_CONFIG)
-    if len(configuration) == 0:
-        log.error("Config is empty.")
-        sys.exit(os.EX_CONFIG)
-    if 'targets' not in configuration or len(configuration['targets']) == 0:
-        log.error("No targets specified.")
-        sys.exit(os.EX_CONFIG)
-    if 'sumo_http_url' not in configuration:
-        log.error("Sumo HTTP Source URL not defined.")
-        sys.exit(os.EX_CONFIG)
-    if not configuration.get('sumo_http_url', None):
-        log.error("Sumo HTTP Source URL is empty.")
-        sys.exit(os.EX_CONFIG)
-    return configuration
+        return config_schema(json.load(value))
+    except JSONDecodeError as e:
+        raise click.BadParameter(str(e), ctx=ctx, param=param)
+    except MultipleInvalid as e:
+        raise click.BadParameter(e.msg, ctx=ctx, param=param, param_hint=e.path)
+
+def run(config):
+    SumoPrometheusScraper(config).run()
 
 
-def validate_target(target_config):
-    if 'url' not in target_config or target_config['url'] is None:
-        log.error("Target config url is not defined: {0}".format(target_config))
-        sys.exit(os.EX_CONFIG)
-    if 'name' not in target_config or target_config['name'] is None:
-        log.error("Target config name is not defined: {0}".format(target_config))
-        sys.exit(os.EX_CONFIG)
+@click.command()
+@click.argument('config', 
+    envvar='CONFIG_PATH', callback=validate_config_file, type=click.File('r'), default="config.json")
+def scraper(config):
+    start = time.monotonic()
+
+    scheduler = BlockingScheduler(timezone='UTC')
+    for target_config in config['targets']:
+        scheduler_config = {'sumo_http_url': config['sumo_http_url']}
+        scheduler_config.update(target_config)
+        for k, v in config['global'].items():
+            scheduler_config.setdefault(k, v)
+
+        scheduler.add_job(run, 'interval', config, name=scheduler_config['name'], id=scheduler_config['name'], seconds=interval)
+    scheduler.start()
 
 
 if __name__ == '__main__':
-    user_config = validate_and_load_config(os.environ.get('CONFIG_PATH', './config.json'))
-    scheduler = BlockingScheduler(timezone='UTC')
-    for target in user_config.get('targets', []):
-        validate_target(target)
-        config = {'sumo_http_url': user_config.get('sumo_http_url', None)}
-        if 'global' in user_config:
-            config['global'] = user_config['global']
-        config['targets'] = [target]
-        interval = 60
-        if 'global' in config:
-            if 'run_interval_seconds' in config['global']:
-                interval = config['global']['run_interval_seconds']
-        else:
-            if 'run_interval_seconds' in target:
-                interval = target['run_interval_seconds']
-        scheduler.add_job(run, 'interval', [config], name=target['name'], id=target['name'], seconds=interval)
-    scheduler.start()
+    scraper()

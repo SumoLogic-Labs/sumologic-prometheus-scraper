@@ -7,8 +7,14 @@ name = "pypi"
 prometheus-client = "*"
 apscheduler = "*"
 requests = "*"
+click = "*"
+voluptuous = "*"
 
 [dev-packages]
+black = "*"
 
 [requires]
 python_version = "3.6"
+
+[pipenv]
+allow_prereleases = true
