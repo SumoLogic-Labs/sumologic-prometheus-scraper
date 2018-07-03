@@ -24,6 +24,7 @@ This script can be run standalone or as a container.  In order to use the script
   },
   "targets": [
     {
+      "name": "target-name-1",
       "url": "INSERT_PROMETHEUS_SCRAPE_TARGET_HERE",
       "exclude_metrics": ["EXCLUDE_METRIC_1", "EXCLUDE_METRIC_2", ...]
     }
@@ -55,7 +56,7 @@ This script can be run standalone or as a container.  In order to use the script
 | `url`                     | String    | The URL for the Prometheus target to scrape.                                                                                                          | Yes       | None    | N/A              |
 | `name`                    | String    | The name of the target.  Used to generate an `up` metric to show that target is up.                                                                   | Yes       | None    | N/A              |
 | `exclude_metrics`         | \[String\]| A list of Strings of metric names to exclude.  Metrics with this name will not be sent to Sumo Logic.                                                 | No        | None    | N/A              |
-| `include_metrics`         | \[String\]| A list of Strings of metric names to include.  Metrics with this name will not be sent to Sumo Logic, as long as they are not in the exclude list.    | No        | None    | N/A              |
+| `include_metrics`         | \[String\]| A list of Strings of metric names to include.  Metrics with this name will be sent to Sumo Logic, as long as they are not in the exclude list.        | No        | None    | N/A              |
 | `source_category`         | String    | The source category to assign to all data from every target.  Takes precedence over global setting.                                                   | No        | None    | Yes              |
 | `source_host`             | String    | The source host to assign to all data from every target.  Takes precedence over global setting.                                                       | No        | None    | Yes              | 
 | `source_name`             | String    | The source name to assign to all data from every target.  Takes precedence over global setting.                                                       | No        | None    | Yes              | 
@@ -66,7 +67,7 @@ This script can be run standalone or as a container.  In order to use the script
  
 ### Including and Excluding metrics
 
-For each target, you can provide a list of metrics to include or exclude.  If you are using include and exclude, then exclusion takes precedence.  If you are using include then only metrics in the inclusion list will be sent to Sumo Logic, provided there is no exclusion list containing that same value.
+For each target, you can provide a list of metrics to include or exclude.  If you are using include and exclude, then exclusion takes precedence.  If you are using include then only metrics in the inclusion list will be sent to Sumo Logic, provided there is no exclusion list containing that same value. Both include and exclude lists support use of * and ? wildcards.
 
 ### Setup
 
