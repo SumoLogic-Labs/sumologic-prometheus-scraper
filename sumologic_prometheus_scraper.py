@@ -13,6 +13,7 @@ import requests
 import sys
 import time
 import math
+import zlib
 from itertools import islice
 
 import concurrent.futures
@@ -117,19 +118,25 @@ class SumoPrometheusScraper:
         self._include_re = match_regexp(self._config["include_metrics"], default=r".*")
 
         retries = config["retries"]
-        self._default_retry = Retry(
+
+        self._scrape_session = requests.Session()
+        sumo_retry = Retry(
             total=retries,
             read=retries,
+            method_whitelist=frozenset(["POST", *Retry.DEFAULT_METHOD_WHITELIST]),
             connect=retries,
             backoff_factor=config["backoff_factor"],
         )
 
-        self._scrape_session = requests.Session()
-
         self._sumo_session = requests.Session()
-        adapter = SumoHTTPAdapter(config, max_retries=self._default_retry)
+        adapter = SumoHTTPAdapter(config, max_retries=sumo_retry)
         self._sumo_session.mount("http://", adapter)
         self._sumo_session.mount("https://", adapter)
+
+        if "token_file_path" in self._config:
+            with open(self._config["token_file_path"]) as f:
+                token = f.read().strip()
+            self._scrape_session.headers["Authorization"] = f"Bearer {token}"
 
     def _parsed_samples(self, prometheus_metrics: str):
         for metric_family in text_string_to_metric_families(prometheus_metrics):
@@ -148,8 +155,15 @@ class SumoPrometheusScraper:
 
         for batch in batches(self._parsed_samples(resp.text), self._batch_size):
             carbon2_batch = [carbon2(*sample, scrape_ts) for sample in batch]
-            metrics = "\n".join(carbon2_batch)
-            resp = self._sumo_session.post(self._config["sumo_http_url"], data=metrics)
+            body = "\n".join(carbon2_batch).encode("utf-8")
+            resp = self._sumo_session.post(
+                self._config["sumo_http_url"],
+                data=zlib.compress(body, level=1),
+                headers={
+                    "Content-Type": "application/vnd.sumologic.carbon2",
+                    "Content-Encoding": "gzip",
+                },
+            )
             resp.raise_for_status()
 
 

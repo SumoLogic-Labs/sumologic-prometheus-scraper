@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 # [1.0.1] (2018-06-25)
   * use Pipfile for dependencies management and repeatable builds
   * include README.md, CHANGELOG.md, LICENSE and other files in the built image
+  * wildcard support in include_metrics / exclude_metrics
+  * stricter config validation
 
 # [1.0.0] (2018-06-05)
 
