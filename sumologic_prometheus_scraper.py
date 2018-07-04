@@ -19,6 +19,7 @@ from itertools import islice
 import concurrent.futures
 
 from apscheduler.schedulers.blocking import BlockingScheduler
+from apscheduler.executors.pool import ThreadPoolExecutor
 from datetime import datetime
 from json.decoder import JSONDecodeError
 from prometheus_client.parser import text_string_to_metric_families
@@ -202,7 +203,7 @@ config_schema = Schema(
     {
         Required("sumo_http_url"): Url(),
         Required("global", default={}): global_config_schema,
-        Required("targets"): All(Length(min=1), [target_config_schema]),
+        Required("targets"): All(Length(min=1, max=256), [target_config_schema]),
     }
 )
 
@@ -226,7 +227,10 @@ def validate_config_file(ctx, param, value):
 )
 def scraper(config):
     start = time.monotonic()
-    scheduler = BlockingScheduler(timezone="UTC")
+    scheduler = BlockingScheduler(
+        timezone="UTC",
+        executors={"default": ThreadPoolExecutor(len(config["targets"]))},
+    )
     for target_config in config["targets"]:
         scheduler_config = {"sumo_http_url": config["sumo_http_url"]}
         scheduler_config.update(target_config)
