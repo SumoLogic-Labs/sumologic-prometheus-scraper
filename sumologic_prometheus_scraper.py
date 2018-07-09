@@ -134,6 +134,8 @@ class SumoPrometheusScraper:
             with open(self._config["token_file_path"]) as f:
                 token = f.read().strip()
             self._scrape_session.headers["Authorization"] = f"Bearer {token}"
+        if "verify" in self._config:
+            self._scrape_session.verify = self._config["verify"]
 
     def _parsed_samples(self, prometheus_metrics: str):
         for metric_family in text_string_to_metric_families(prometheus_metrics):
@@ -214,6 +216,7 @@ target_config_schema = global_config_schema.extend(
         Required("exclude_metrics", default=[]): list([str]),
         Required("include_metrics", default=[]): list([str]),
         "token_file_path": IsFile(),
+        "verify": str,
         # repeat keys from global to remove default values
         "sumo_http_url": Url(),
         "run_interval_seconds": All(int, Range(min=1)),
