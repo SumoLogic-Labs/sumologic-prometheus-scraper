@@ -1,9 +1,11 @@
 FROM python:3.6.5-alpine3.7
 
-RUN mkdir -p /opt/sumo
+RUN pip install --upgrade pip pipenv
 
-RUN pip install --upgrade pip requests prometheus_client apscheduler
+WORKDIR /opt/sumo
 
-COPY sumologic_prometheus_scraper.py /opt/sumo/
+COPY . /opt/sumo/
 
-CMD ["python", "/opt/sumo/sumologic_prometheus_scraper.py"]
+RUN pipenv install --system
+
+CMD ["./sumologic_prometheus_scraper.py"]

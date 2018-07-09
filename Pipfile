@@ -1,0 +1,21 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+apscheduler = "*"
+asyncio = "*"
+click = "*"
+prometheus-client = "*"
+requests = "*"
+voluptuous = "*"
+
+[dev-packages]
+black = "*"
+
+[requires]
+python_version = "3.6.5"
+
+[pipenv]
+allow_prereleases = true

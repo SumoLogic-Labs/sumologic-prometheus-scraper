@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. 
 
+# [2.0.0] (2018-07-06)
+
+  * major refactor, which introduces some breaking changes for the better, hence the major version bump
+  * use Pipfile for dependencies management and repeatable builds
+  * include README.md, CHANGELOG.md, LICENSE and other files in the built image
+  * wildcard support in include_metrics / exclude_metrics
+  * stricter config validation
+  * allow sumo_http_url to be defined in global config or overridden per target
+
 # [1.0.0] (2018-06-05)
 
   * allow configuration to use environment variables
