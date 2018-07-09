@@ -261,6 +261,7 @@ def scrape(config):
         for k, v in config["global"].items():
             scheduler_config.setdefault(k, v)
         name = target_config["name"]
+        scheduler_config = json.loads(os.path.expandvars(json.dumps(scheduler_config)))
         if "sumo_http_url" not in scheduler_config:
             log.error(f"sumo_http_url not defined for {name} and is required.")
         else:
