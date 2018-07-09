@@ -8,4 +8,4 @@ COPY . /opt/sumo/
 
 RUN pipenv install --system
 
-CMD ["./sumologic_prometheus_scraper.py"]
+CMD ["python", "./sumologic_prometheus_scraper.py"]
