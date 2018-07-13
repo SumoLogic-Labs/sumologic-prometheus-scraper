@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file. 
 
+# [2.1.0] (2018-07-13)
+
+  * Add ability to pass callback function to SumoPrometheusScraper
+
 # [2.0.0] (2018-07-06)
 
   * major refactor, which introduces some breaking changes for the better, hence the major version bump

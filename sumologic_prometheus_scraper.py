@@ -3,6 +3,7 @@
 import asyncio
 import click
 import concurrent.futures
+import functools
 import gzip
 import json
 import logging
@@ -105,7 +106,7 @@ class SumoHTTPAdapter(HTTPAdapter):
 
 
 class SumoPrometheusScraper:
-    def __init__(self, name: str, config: dict):
+    def __init__(self, name: str, config: dict, callback=None):
         self._config = config
         self._name = name
         self._batch_size = config["batch_size"]
@@ -113,6 +114,9 @@ class SumoPrometheusScraper:
         self._scrape_session = None
         self._exclude_re = match_regexp(self._config["exclude_metrics"], default=r"")
         self._include_re = match_regexp(self._config["include_metrics"], default=r".*")
+        self._callback = callback
+        if callback and callable(self._callback):
+            self._callback = functools.partial(callback)
 
         retries = config["retries"]
 
@@ -162,7 +166,13 @@ class SumoPrometheusScraper:
             pass
 
     def _compress_and_send(self, batch, scrape_ts: int):
-        carbon2_batch = [carbon2(*sample, scrape_ts=scrape_ts) for sample in batch]
+        if self._callback and callable(self._callback):
+            carbon2_batch = [
+                carbon2(*sample, scrape_ts=scrape_ts)
+                for sample in self._callback(batch)
+            ]
+        else:
+            carbon2_batch = [carbon2(*sample, scrape_ts=scrape_ts) for sample in batch]
         carbon2_batch.append(f"metric=up  1 {scrape_ts}")
         body = "\n".join(carbon2_batch).encode("utf-8")
         resp = self._sumo_session.post(
