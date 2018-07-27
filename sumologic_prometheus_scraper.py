@@ -22,6 +22,7 @@ from prometheus_client.parser import text_string_to_metric_families
 from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
 from voluptuous import (
+    ALLOW_EXTRA,
     All,
     IsFile,
     Length,
@@ -112,8 +113,10 @@ class SumoPrometheusScraper:
         self._batch_size = config["batch_size"]
         self._sumo_session = None
         self._scrape_session = None
-        self._exclude_re = match_regexp(self._config["exclude_metrics"], default=r"")
-        self._include_re = match_regexp(self._config["include_metrics"], default=r".*")
+        self._exclude_metrics_re = match_regexp(self._config["exclude_metrics"], default=r"$.")
+        self._include_metrics_re = match_regexp(self._config["include_metrics"], default=r".*")
+        self._exclude_labels = self._config["exclude_labels"]
+        self._include_labels = self._config["include_labels"]
         self._callback = callback
         if callback and callable(self._callback):
             self._callback = functools.partial(callback)
@@ -147,9 +150,20 @@ class SumoPrometheusScraper:
                 name, labels, value = sample
                 if math.isnan(value):
                     continue
-                if self._exclude_re.match(name) and not self._include_re.match(name):
+                if self._exclude_metrics_re.match(name) or not self._include_metrics_re.match(name):
                     continue
-                yield name, sanitize_labels(labels), value
+                for key, value in self._exclude_labels.items():
+                    if key not in labels:
+                        break
+                    if re.match(value, labels[key]):
+                        break
+                    yield name, sanitize_labels(labels), value
+                for key, value in self._include_labels.items():
+                    if key not in labels:
+                        break
+                    if not re.match(value, labels[key]):
+                        break
+                    yield name, sanitize_labels(labels), value
 
     async def _post_to_sumo(self, resp, scrape_ts: int):
         with concurrent.futures.ThreadPoolExecutor(
@@ -174,34 +188,45 @@ class SumoPrometheusScraper:
         else:
             carbon2_batch = [carbon2(*sample, scrape_ts=scrape_ts) for sample in batch]
         carbon2_batch.append(f"metric=up  1 {scrape_ts}")
+        print(len(carbon2_batch))
         body = "\n".join(carbon2_batch).encode("utf-8")
-        resp = self._sumo_session.post(
-            self._config["sumo_http_url"],
-            data=gzip.compress(body, compresslevel=1),
-            headers={
-                "Content-Type": "application/vnd.sumologic.carbon2",
-                "Content-Encoding": "gzip",
-            },
-        )
-        resp.raise_for_status()
-        log.info(
-            f"posting batch to Sumo logic for {self._config['name']} took {resp.elapsed.total_seconds()} seconds"
-        )
+        try:
+            resp = self._sumo_session.post(
+                self._config["sumo_http_url"],
+                data=gzip.compress(body, compresslevel=1),
+                headers={
+                    "Content-Type": "application/vnd.sumologic.carbon2",
+                    "Content-Encoding": "gzip",
+                },
+            )
+            resp.raise_for_status()
+            log.info(
+                f"posting batch to Sumo logic for {self._config['name']} took {resp.elapsed.total_seconds()} seconds"
+            )
+        except requests.exceptions.HTTPError as http_error:
+            log.error(
+                f"unable to send batch for {self._config['name']} to Sumo Logic, got back response {resp.status_code} and error {http_error}"
+            )
 
     def run(self):
         start = int(time.time())
-        resp = self._scrape_session.get(self._config["url"])
-        resp.raise_for_status()
-        scrape_ts = int(time.time())
-        log.info(
-            f"scrape of {self._config['name']} took {resp.elapsed.total_seconds()} seconds"
-        )
-        event_loop = asyncio.new_event_loop()
-        event_loop.run_until_complete(self._post_to_sumo(resp, scrape_ts))
+        try:
+            resp = self._scrape_session.get(self._config["url"])
+            resp.raise_for_status()
+            scrape_ts = int(time.time())
+            log.info(
+                f"scrape of {self._config['name']} took {resp.elapsed.total_seconds()} seconds"
+            )
+            event_loop = asyncio.new_event_loop()
+            event_loop.run_until_complete(self._post_to_sumo(resp, scrape_ts))
 
-        log.info(
-            f"total time taken for {self._config['name']} was {(time.time() - start)} seconds"
-        )
+            log.info(
+                f"total time taken for {self._config['name']} was {(time.time() - start)} seconds"
+            )
+        except requests.exceptions.HTTPError as http_error:
+            log.error(
+                f"unable to send batch for {self._config['name']} to Sumo Logic, got back response {resp.status_code} and error {http_error}"
+            )
 
 
 global_config_schema = Schema(
@@ -225,6 +250,8 @@ target_config_schema = global_config_schema.extend(
         Required("name"): str,
         Required("exclude_metrics", default=[]): list([str]),
         Required("include_metrics", default=[]): list([str]),
+        Required("exclude_labels", default={}): Schema({}, extra=ALLOW_EXTRA),
+        Required("include_labels", default={}): Schema({}, extra=ALLOW_EXTRA),
         "token_file_path": IsFile(),
         "verify": str,
         # repeat keys from global to remove default values

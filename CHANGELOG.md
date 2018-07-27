@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. 
 
+# [2.2.0] (2018-07-27)
+
+  * Add ability to include/exclude metrics based on labels.
+  * Fix bug that could cause filtering by metric name not to behave as expected.
+  * Better error handling to reduce volume of logging.
+
 # [2.1.0] (2018-07-13)
 
   * Add ability to pass callback function to SumoPrometheusScraper

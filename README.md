@@ -43,18 +43,18 @@ This script can be run standalone or as a container.  In order to use the script
 
 All Global properties can be overridden per target.  Each Global property applies to each target, unless the target overrides it.
 
-| Key                      | Type   | Description                                                                                  | Required                   | Default |
-| ---                      | -----  | -----------                                                                                  | --------                   | ------- |
-| `sumo_http_url`          | URL    | The Sumo Logic HTTP source URL.  This can be configured globally, or per target.             | Yes (Unless set in Target) | None    | 
-| `run_interval_seconds`   | int    | The interval in seconds in which the target should be scraped.                               | No                         | 60      | 
-| `target_threads`         | int    | The number of threads to use when POST metrics to Sumo Logic.                                | No                         | 10      | 
-| `retries`                | int    | The number of times to retry sending data to Sumo Logic in the event of issue.               | No                         | 5       | 
-| `backoff_factor`         | float  | The back off factor to use when retrying.                                                    | No                         | .2      | 
-| `source_category`        | String | The source category to assign to all data from every target, unless overridden in target.    | No                         | None    | 
-| `source_host`            | String | The source host to assign to all data from every target, unless overridden in target.        | No                         | None    | 
-| `source_name`            | String | The source name to assign to all data from every target, unless overridden in target.        | No                         | None    | 
-| `dimensions`             | String | Additional dimensions to assign to all data from every target, unless overridden in target.  | No                         | None    | 
-| `metadata`               | String | Additional metadata to assign to all data from every target, unless overridden in target.    | No                         | None    | 
+| Key                      | Type   | Description                                                                                                       | Required                   | Default |
+| ---                      | -----  | -----------                                                                                                       | --------                   | ------- |
+| `sumo_http_url`          | URL    | The Sumo Logic HTTP source URL.  This can be configured globally, or per target.                                  | Yes (Unless set in Target) | None    | 
+| `run_interval_seconds`   | int    | The interval in seconds in which the target should be scraped.  This can be configured globally, or per target.   | No                         | 60      | 
+| `target_threads`         | int    | The number of threads to use when POST metrics to Sumo Logic.                                                     | No                         | 10      | 
+| `retries`                | int    | The number of times to retry sending data to Sumo Logic in the event of issue.                                    | No                         | 5       | 
+| `backoff_factor`         | float  | The back off factor to use when retrying.                                                                         | No                         | .2      | 
+| `source_category`        | String | The source category to assign to all data from every target, unless overridden in target.                         | No                         | None    | 
+| `source_host`            | String | The source host to assign to all data from every target, unless overridden in target.                             | No                         | None    | 
+| `source_name`            | String | The source name to assign to all data from every target, unless overridden in target.                             | No                         | None    | 
+| `dimensions`             | String | Additional dimensions to assign to all data from every target, unless overridden in target.                       | No                         | None    | 
+| `metadata`               | String | Additional metadata to assign to all data from every target, unless overridden in target.                         | No                         | None    | 
 
 ### Target Properties
 | Key                       | Type      | Description                                                                                                                                           | Required  | Default |
@@ -63,11 +63,16 @@ All Global properties can be overridden per target.  Each Global property applie
 | `name`                    | String    | The name of the target.  Used to generate an `up` metric to show that target is up.                                                                   | Yes       | None    |
 | `exclude_metrics`         | \[String\]| A list of Strings of metric names to exclude.  Metrics with this name will not be sent to Sumo Logic.                                                 | No        | None    |
 | `include_metrics`         | \[String\]| A list of Strings of metric names to include.  Metrics with this name will be sent to Sumo Logic, as long as they are not in the exclude list.        | No        | None    |
+| `exclude_labels`          | Dict      | A dictionary of labels to exclude.  Metrics with these labels will not be sent to Sumo Logic.                                                         | No        | None    |
+| `include_labels`          | Dict      | A dictionary of labels to include.  Metrics with these labels will be sent to Sumo Logic, as long as they are not in the exclude list.                | No        | None    |
  
- 
-### Including and Excluding metrics
+### Including and Excluding metrics by Name
 
-For each target, you can provide a list of metrics to include or exclude.  If you are using include and exclude, then exclusion takes precedence.  If you are using include then only metrics in the inclusion list will be sent to Sumo Logic, provided there is no exclusion list containing that same value. Both include and exclude lists support use of * and ? wildcards.
+For each target, you can provide a list of metrics to include (`include_metrics`) or exclude (`exclude_metrics`).  If you are using include and exclude, then exclusion takes precedence.  If you are using include then only metrics in the inclusion list will be sent to Sumo Logic, provided there is no exclusion list containing that same value. Both include and exclude lists support use of * and ? wildcards.
+
+### Including and Excluding metrics by Label
+
+For each target, you can provide a dictionary of labels to include (`include_labels`) or exclude (`exclude_labels`).  If you are using include and exclude, then exclusion takes precedence.  If you are using include then only metrics in the inclusion list will be sent to Sumo Logic, provided there is no exclusion list containing that same value. Both include and exclude lists support use of * and ? wildcards.
 
 ### Setup
 
