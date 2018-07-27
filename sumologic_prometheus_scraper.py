@@ -113,8 +113,12 @@ class SumoPrometheusScraper:
         self._batch_size = config["batch_size"]
         self._sumo_session = None
         self._scrape_session = None
-        self._exclude_metrics_re = match_regexp(self._config["exclude_metrics"], default=r"$.")
-        self._include_metrics_re = match_regexp(self._config["include_metrics"], default=r".*")
+        self._exclude_metrics_re = match_regexp(
+            self._config["exclude_metrics"], default=r"$."
+        )
+        self._include_metrics_re = match_regexp(
+            self._config["include_metrics"], default=r".*"
+        )
         self._exclude_labels = self._config["exclude_labels"]
         self._include_labels = self._config["include_labels"]
         self._callback = callback
@@ -150,7 +154,9 @@ class SumoPrometheusScraper:
                 name, labels, value = sample
                 if math.isnan(value):
                     continue
-                if self._exclude_metrics_re.match(name) or not self._include_metrics_re.match(name):
+                if self._exclude_metrics_re.match(
+                    name
+                ) or not self._include_metrics_re.match(name):
                     continue
                 for key, value in self._exclude_labels.items():
                     if key not in labels:
@@ -188,7 +194,6 @@ class SumoPrometheusScraper:
         else:
             carbon2_batch = [carbon2(*sample, scrape_ts=scrape_ts) for sample in batch]
         carbon2_batch.append(f"metric=up  1 {scrape_ts}")
-        print(len(carbon2_batch))
         body = "\n".join(carbon2_batch).encode("utf-8")
         try:
             resp = self._sumo_session.post(
