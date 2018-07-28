@@ -154,22 +154,29 @@ class SumoPrometheusScraper:
                 name, labels, value = sample
                 if math.isnan(value):
                     continue
-                if self._exclude_metrics_re.match(
-                    name
-                ) or not self._include_metrics_re.match(name):
-                    continue
-                for key, value in self._exclude_labels.items():
-                    if key not in labels:
-                        break
-                    if re.match(value, labels[key]):
-                        break
+                if (
+                    self._include_metrics_re.match(name)
+                    and not self._exclude_metrics_re.match(name)
+                    and self._should_include(labels)
+                    and not self._should_exclude(labels)
+                ):
                     yield name, sanitize_labels(labels), value
-                for key, value in self._include_labels.items():
-                    if key not in labels:
-                        break
-                    if not re.match(value, labels[key]):
-                        break
-                    yield name, sanitize_labels(labels), value
+
+    def _should_include(self, labels):
+        if not self._include_labels.items():
+            return True
+        for key, value in self._include_labels.items():
+            if key in labels and re.match(value, labels[key]):
+                return True
+        return False
+
+    def _should_exclude(self, labels):
+        if not self._exclude_labels.items():
+            return False
+        for key, value in self._exclude_labels.items():
+            if key in labels and re.match(value, labels[key]):
+                return True
+        return False
 
     async def _post_to_sumo(self, resp, scrape_ts: int):
         with concurrent.futures.ThreadPoolExecutor(
