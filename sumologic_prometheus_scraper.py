@@ -24,6 +24,8 @@ from urllib3.util import Retry
 from voluptuous import (
     ALLOW_EXTRA,
     All,
+    Any,
+    Boolean,
     IsFile,
     Length,
     MultipleInvalid,
@@ -265,7 +267,7 @@ target_config_schema = global_config_schema.extend(
         Required("exclude_labels", default={}): Schema({}, extra=ALLOW_EXTRA),
         Required("include_labels", default={}): Schema({}, extra=ALLOW_EXTRA),
         "token_file_path": IsFile(),
-        "verify": str,
+        "verify": Any(Boolean(), str),
         # repeat keys from global to remove default values
         "sumo_http_url": Url(),
         "run_interval_seconds": All(int, Range(min=1)),

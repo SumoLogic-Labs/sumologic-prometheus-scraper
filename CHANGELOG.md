@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file. 
 
+# [2.2.3] (2018-08-01)
+
+  * allow verify to be a boolean or string to allow skipping verification
+
 # [2.2.2] (2018-07-28)
 
   * refactor
