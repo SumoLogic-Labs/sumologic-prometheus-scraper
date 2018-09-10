@@ -66,6 +66,29 @@ All Global properties can be overridden per target.  Each Global property applie
 | `exclude_labels`          | Dict      | A dictionary of labels to exclude.  Metrics with these labels will not be sent to Sumo Logic.                                                         | No        | None    |
 | `include_labels`          | Dict      | A dictionary of labels to include.  Metrics with these labels will be sent to Sumo Logic, as long as they are not in the exclude list.                | No        | None    |
  
+
+### Auto Discovery For Kubernetes Services
+
+Release 2.3.0 adds support for auto discovery of URL's behind Kubernetes services.  When configuring a target url, it is possible to provide a dictionary instead of a URL.  The dictionary can have the following properties:
+
+| Key           | Type      | Description                                                      | Required  | Default  |
+| ---           | ----      | -----------                                                      | --------  | -------  |
+| `service`     | str       | The name of the Kubernetes Service.                              | Yes       | None     |
+| `namespace`   | str       | The name of the Kubernetes namespace the Service runs in.        | Yes       | None     | 
+| `protocol`    | str       | The protocol to use when connecting to the service.              | Yes       | http     |  
+| `path`        | str       | The path for the service endpoint for where metrics are exposed. | Yes       | /metrics |
+
+For example, suppose you have a Service called `foo` in the `bar` Namespace.  Lets say there are 3 pods in the deployment that the `foo` Service points to, each one exposing its custom metrics on `/metrics`.  You could use the following configuration for the `url` to collect metrics from all 3 pods.
+
+```json
+{
+  "service": "foo",
+  "namespace": "bar"
+}
+```
+
+If you were to simply use the Service URL (e.g. `http://foo.bar:8080/metrics`), the you would get the metrics from one pod each scrape, the pod that the Service would happen to choose.  Using the dictionary configuration ensures you always get the metrics from all pods behind the Service.   
+ 
 ### Including and Excluding metrics by Name
 
 For each target, you can provide a list of metrics to include (`include_metrics`) or exclude (`exclude_metrics`).  If you are using include and exclude, then exclusion takes precedence.  If you are using include then only metrics in the inclusion list will be sent to Sumo Logic, provided there is no exclusion list containing that same value. Both include and exclude lists support use of * and ? wildcards.
@@ -124,9 +147,6 @@ The config file has invalid syntax and cannot be parsed as JSON.
 
 #### `Error: Invalid value for "targets": required key not provided.`
 There are no targets defined in the config file.
-
-#### `sumo_http_url not defined for * and is required.`
-The `sumo_http_url` is not defined.
 
 #### `Error: Invalid value for "targets" / "0" / "sumo_http_url": expected a URL`
 The `sumo_http_url` is not a valid URL.

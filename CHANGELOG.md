@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file. 
 
+# [2.3.0] (2018-09-09)
+
+  * harden config validation
+  * add discovery capabilities for metrics behind Kubernetes services
+
 # [2.2.3] (2018-08-01)
 
   * allow verify to be a boolean or string to allow skipping verification
