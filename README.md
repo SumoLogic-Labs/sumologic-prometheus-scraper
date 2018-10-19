@@ -43,18 +43,18 @@ This script can be run standalone or as a container.  In order to use the script
 
 All Global properties can be overridden per target.  Each Global property applies to each target, unless the target overrides it.
 
-| Key                      | Type   | Description                                                                                                       | Required                   | Default |
-| ---                      | -----  | -----------                                                                                                       | --------                   | ------- |
-| `sumo_http_url`          | URL    | The Sumo Logic HTTP source URL.  This can be configured globally, or per target.                                  | Yes (Unless set in Target) | None    | 
-| `run_interval_seconds`   | int    | The interval in seconds in which the target should be scraped.  This can be configured globally, or per target.   | No                         | 60      | 
-| `target_threads`         | int    | The number of threads to use when POST metrics to Sumo Logic.                                                     | No                         | 10      | 
-| `retries`                | int    | The number of times to retry sending data to Sumo Logic in the event of issue.                                    | No                         | 5       | 
-| `backoff_factor`         | float  | The back off factor to use when retrying.                                                                         | No                         | .2      | 
-| `source_category`        | String | The source category to assign to all data from every target, unless overridden in target.                         | No                         | None    | 
-| `source_host`            | String | The source host to assign to all data from every target, unless overridden in target.                             | No                         | None    | 
-| `source_name`            | String | The source name to assign to all data from every target, unless overridden in target.                             | No                         | None    | 
-| `dimensions`             | String | Additional dimensions to assign to all data from every target, unless overridden in target.                       | No                         | None    | 
-| `metadata`               | String | Additional metadata to assign to all data from every target, unless overridden in target.                         | No                         | None    | 
+| Key                      | Type   | Description                                                                                                                          | Required                   | Default |
+| ---                      | -----  | -----------                                                                                                                          | --------                   | ------- |
+| `sumo_http_url`          | URL    | The Sumo Logic HTTP source URL.  This can be configured globally, or per target.                                                     | Yes (Unless set in Target) | None    | 
+| `run_interval_seconds`   | int    | The interval in seconds in which the target should be scraped.  This can be configured globally, or per target.                      | No                         | 60      | 
+| `target_threads`         | int    | The number of threads to use when POST metrics to Sumo Logic.                                                                        | No                         | 10      | 
+| `retries`                | int    | The number of times to retry sending data to Sumo Logic in the event of issue.                                                       | No                         | 5       | 
+| `backoff_factor`         | float  | The back off factor to use when retrying.                                                                                            | No                         | .2      | 
+| `source_category`        | String | The source category to assign to all data from every target, unless overridden in target.                                            | No                         | None    | 
+| `source_host`            | String | The source host to assign to all data from every target, unless overridden in target.                                                | No                         | None    | 
+| `source_name`            | String | The source name to assign to all data from every target, unless overridden in target.                                                | No                         | None    | 
+| `dimensions`             | String | Comma-separated key=value list of additional dimensions to assign to all data from every target, unless overridden in target.        | No                         | None    | 
+| `metadata`               | String | Comma-separated key=value list of additional metadata to assign to all data from every target, unless overridden in target.          | No                         | None    | 
 
 ### Target Properties
 | Key                       | Type      | Description                                                                                                                                           | Required  | Default |
