@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file. 
 
+# [2.4.0] (2018-10-19)
+
+  * Add ability to remove labels before sending to Sumo Logic
+  * Refactor callback to allow callback to be optional and invoke callback per metric as opposed to per batch. 
+
 # [2.3.0] (2018-09-09)
 
   * harden config validation

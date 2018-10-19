@@ -65,8 +65,8 @@ All Global properties can be overridden per target.  Each Global property applie
 | `include_metrics`         | \[String\]| A list of Strings of metric names to include.  Metrics with this name will be sent to Sumo Logic, as long as they are not in the exclude list.        | No        | None    |
 | `exclude_labels`          | Dict      | A dictionary of labels to exclude.  Metrics with these labels will not be sent to Sumo Logic.                                                         | No        | None    |
 | `include_labels`          | Dict      | A dictionary of labels to include.  Metrics with these labels will be sent to Sumo Logic, as long as they are not in the exclude list.                | No        | None    |
+| `strip_labels`            | \[String\]| A list of Strings of label keys to remove before sending to Sumo Logic.  Labels with this key will be removed before the data is sent to Sumo Logic.  | No        | None    |
  
-
 ### Auto Discovery For Kubernetes Services
 
 Release 2.3.0 adds support for auto discovery of URL's behind Kubernetes services.  When configuring a target url, it is possible to provide a dictionary instead of a URL.  The dictionary can have the following properties:
@@ -97,6 +97,10 @@ For each target, you can provide a list of metrics to include (`include_metrics`
 
 For each target, you can provide a dictionary of labels to include (`include_labels`) or exclude (`exclude_labels`).  If you are using include and exclude, then exclusion takes precedence.  If you are using include then only metrics in the inclusion list will be sent to Sumo Logic, provided there is no exclusion list containing that same value. Both include and exclude lists support use of * and ? wildcards.
 
+### Removing Labels
+
+For each target, you can provide a list of label keys to remove before sending to Sumo Logic.  These must be exact matches, no wild card support.
+
 ### Setup
 
 #### Create a hosted collector and HTTP source in Sumo
@@ -114,7 +118,7 @@ The script can be configured with the following environment variables to be set.
 | Variable            | Description                                                  | Required | DEFAULT VALUE    |
 | --------            | -----------                                                  | -------- | -------------    |
 | `CONFIG_PATH`       | The path to the configuration file.                          | YES      |  `./config.json` |
-| `LOGGING_LEVEL`     | The logging level.                                           | NO       |  `INFO`          |
+| `LOGGING_LEVEL`     | The logging level.                                           | NO       |  `ERROR`          |
 
 ##### Running locally
 

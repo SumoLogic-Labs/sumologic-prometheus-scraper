@@ -160,6 +160,8 @@ class SumoPrometheusScraperConfig:
                 Required("include_metrics", default=[]): list([str]),
                 Required("exclude_labels", default={}): Schema({}, extra=ALLOW_EXTRA),
                 Required("include_labels", default={}): Schema({}, extra=ALLOW_EXTRA),
+                Required("strip_labels", default=[]): list([str]),
+                Required("should_callback", default=True): bool,
                 "token_file_path": IsFile(),
                 "verify": Any(Boolean(), str),
                 # repeat keys from global to remove default values
@@ -200,6 +202,7 @@ class SumoPrometheusScraper:
     def __init__(self, name: str, config: dict, callback=None):
         self._config = config
         self._name = name
+        self._should_callback = config["should_callback"]
         self._batch_size = config["batch_size"]
         self._sumo_session = None
         self._scrape_session = None
@@ -211,6 +214,7 @@ class SumoPrometheusScraper:
         )
         self._exclude_labels = self._config["exclude_labels"]
         self._include_labels = self._config["include_labels"]
+        self._strip_labels = self._config["strip_labels"]
         self._callback = callback
         if callback and callable(self._callback):
             self._callback = functools.partial(callback)
@@ -242,6 +246,8 @@ class SumoPrometheusScraper:
         for metric_family in text_string_to_metric_families(prometheus_metrics):
             for sample in metric_family.samples:
                 name, labels, value = sample
+                if self._callback and callable(self._callback) and self._should_callback:
+                    name, labels, value = self._callback(name, labels, value)
                 if math.isnan(value):
                     continue
                 if (
@@ -250,6 +256,8 @@ class SumoPrometheusScraper:
                     and self._should_include(labels)
                     and not self._should_exclude(labels)
                 ):
+                    for label_key in self._strip_labels:
+                        labels.pop(label_key, None)
                     yield name, sanitize_labels(labels), value
 
     def _should_include(self, labels):
@@ -283,14 +291,7 @@ class SumoPrometheusScraper:
             pass
 
     def _compress_and_send(self, batch, scrape_ts: int):
-        if self._callback and callable(self._callback):
-            carbon2_batch = [
-                carbon2(*sample, scrape_ts=scrape_ts)
-                for sample in self._callback(batch)
-            ]
-        else:
-            carbon2_batch = [carbon2(*sample, scrape_ts=scrape_ts) for sample in batch]
-        carbon2_batch.append(f"metric=up  1 {scrape_ts}")
+        carbon2_batch = [carbon2(*sample, scrape_ts=scrape_ts) for sample in batch]
         body = "\n".join(carbon2_batch).encode("utf-8")
         try:
             resp = self._sumo_session.post(
