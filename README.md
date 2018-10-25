@@ -37,7 +37,7 @@ This script can be run standalone or as a container.  In order to use the script
 | Key               | Type | Description                                               | Required  | Default |
 | ---               | -----| -----------                                               | --------  | ------- |
 | `global`          | {}   | This is the global settings that apply to all targets.    | No        | None    |
-| `targets`         | []   | A list of targets to scrape and sent to Sumo Logic        | No        | None    |
+| `targets`         | []   | A list of targets to scrape and sent to Sumo Logic        | Yes        | None    |
 
 ### Global Properties
 
