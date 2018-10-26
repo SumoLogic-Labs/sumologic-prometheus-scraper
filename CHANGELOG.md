@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file. 
 
+# [2.4.1] (2018-10-26)
+
+  * set X-Sumo-Client header
+
 # [2.4.0] (2018-10-19)
 
   * Add ability to remove labels before sending to Sumo Logic

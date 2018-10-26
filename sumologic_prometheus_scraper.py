@@ -246,7 +246,11 @@ class SumoPrometheusScraper:
         for metric_family in text_string_to_metric_families(prometheus_metrics):
             for sample in metric_family.samples:
                 name, labels, value = sample
-                if self._callback and callable(self._callback) and self._should_callback:
+                if (
+                    self._callback
+                    and callable(self._callback)
+                    and self._should_callback
+                ):
                     name, labels, value = self._callback(name, labels, value)
                 if math.isnan(value):
                     continue
@@ -300,6 +304,7 @@ class SumoPrometheusScraper:
                 headers={
                     "Content-Type": "application/vnd.sumologic.carbon2",
                     "Content-Encoding": "gzip",
+                    "X-Sumo-Client": "prometheus-scraper",
                 },
             )
             resp.raise_for_status()
@@ -338,7 +343,10 @@ class SumoPrometheusScraper:
         resp = self._sumo_session.post(
             self._config["sumo_http_url"],
             data=data,
-            headers={"Content-Type": "application/vnd.sumologic.carbon2"},
+            headers={
+                "Content-Type": "application/vnd.sumologic.carbon2",
+                "X-Sumo-Client": "prometheus-scraper",
+            },
         )
         log.debug(
             f"got back status code {resp.status_code} for up metric for {self._config['name']}"
@@ -346,7 +354,9 @@ class SumoPrometheusScraper:
         resp.raise_for_status()
 
 
-@scheduler.scheduled_job("interval", id="synchronize", seconds=int(os.environ.get("SYNC_INTERVAL", "10")))
+@scheduler.scheduled_job(
+    "interval", id="synchronize", seconds=int(os.environ.get("SYNC_INTERVAL", "10"))
+)
 def synchronize():
     current_monitors = monitors.copy()
     for key, value in current_monitors.items():
@@ -477,7 +487,7 @@ def scrape(config):
     expanded_config = expand_config(config)
     scheduler.configure(
         timezone="UTC",
-        executors={"default": ThreadPoolExecutor(len(expanded_config["targets"]))}
+        executors={"default": ThreadPoolExecutor(len(expanded_config["targets"]))},
     )
     for target_config in expanded_config["targets"]:
         scheduler_config = {}
