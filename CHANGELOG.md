@@ -1,6 +1,10 @@
 # Change Log
 
-All notable changes to this project will be documented in this file. 
+All notable changes to this project will be documented in this file.
+
+# [2.4.2] (2018-10-29)
+
+  * update pipfile.lock
 
 # [2.4.1] (2018-10-26)
 
