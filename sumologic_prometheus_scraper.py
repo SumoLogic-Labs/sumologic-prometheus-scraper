@@ -58,14 +58,11 @@ def batches(iterator, batch_size: int):
 
 
 def sanitize_labels(labels: dict):
-    """Given prometheus metric sample labels, returns labels dict suitable for Carbon2 format"""
-    new_labels = dict()
-    for label, value in labels.items():
-        if value.strip() == "":
-            continue
-        nv = value.replace(" ", "_")
-        new_labels[label] = nv
-    return new_labels
+    """Given prometheus metric sample labels, returns labels dict suitable for Prometheus format"""
+    new_labels = ""
+    for key, value in labels.items():
+        new_labels += "=".join([key, '"' + value + '"', ","])
+    return f"{{{new_labels[:-2]}}}"
 
 
 def match_regexp(glob_list: list, default: str):
@@ -74,15 +71,6 @@ def match_regexp(glob_list: list, default: str):
     if not glob_list:
         return re.compile(default)
     return re.compile(r"|".join(fnmatch.translate(p) for p in glob_list))
-
-
-def carbon2(name: str, labels: dict, value: float, scrape_ts: int):
-    """Converts given prometheus sample into carbon format"""
-    intrinsic_labels = " ".join(f"{k}={v}" for k, v in labels.items())
-    if intrinsic_labels == "":
-        return f"metric={name}  {value} {scrape_ts}"
-    else:
-        return f"metric={name} {intrinsic_labels}  {value} {scrape_ts}"
 
 
 class SumoHTTPAdapter(HTTPAdapter):
@@ -242,10 +230,10 @@ class SumoPrometheusScraper:
         if "verify" in self._config:
             self._scrape_session.verify = self._config["verify"]
 
-    def _parsed_samples(self, prometheus_metrics: str):
+    def _parsed_samples(self, prometheus_metrics: str, scrape_ts: int):
         for metric_family in text_string_to_metric_families(prometheus_metrics):
             for sample in metric_family.samples:
-                name, labels, value = sample
+                name, labels, value, ts, exemplar = sample
                 if (
                     self._callback
                     and callable(self._callback)
@@ -262,7 +250,7 @@ class SumoPrometheusScraper:
                 ):
                     for label_key in self._strip_labels:
                         labels.pop(label_key, None)
-                    yield name, sanitize_labels(labels), value
+                    yield f"{name}{sanitize_labels(labels)} {value} {scrape_ts}"
 
     def _should_include(self, labels):
         if not self._include_labels.items():
@@ -287,22 +275,21 @@ class SumoPrometheusScraper:
             event_loop = asyncio.get_event_loop()
             futures = [
                 event_loop.run_in_executor(
-                    executor, self._compress_and_send, batch, scrape_ts
+                    executor, self._compress_and_send, batch
                 )
-                for batch in batches(self._parsed_samples(resp.text), self._batch_size)
+                for batch in batches(self._parsed_samples(resp.text, scrape_ts), self._batch_size)
             ]
         for _ in await asyncio.gather(*futures):
             pass
 
-    def _compress_and_send(self, batch, scrape_ts: int):
-        carbon2_batch = [carbon2(*sample, scrape_ts=scrape_ts) for sample in batch]
-        body = "\n".join(carbon2_batch).encode("utf-8")
+    def _compress_and_send(self, batch):
+        body = "\n".join(batch).encode("utf-8")
         try:
             resp = self._sumo_session.post(
                 self._config["sumo_http_url"],
                 data=gzip.compress(body, compresslevel=1),
                 headers={
-                    "Content-Type": "application/vnd.sumologic.carbon2",
+                    "Content-Type": "application/vnd.sumologic.prometheus",
                     "Content-Encoding": "gzip",
                     "X-Sumo-Client": "prometheus-scraper",
                 },
