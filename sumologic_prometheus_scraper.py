@@ -233,7 +233,7 @@ class SumoPrometheusScraper:
     def _parsed_samples(self, prometheus_metrics: str, scrape_ts: int):
         for metric_family in text_string_to_metric_families(prometheus_metrics):
             for sample in metric_family.samples:
-                name, labels, value = sample
+                name, labels, value, ts, exemplar = sample
                 if (
                     self._callback
                     and callable(self._callback)
