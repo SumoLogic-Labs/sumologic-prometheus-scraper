@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+# [2.5.0] (2018-11-02)
+
+  * Add Support for Sumo Logic Prometheus Content Type
+
 # [2.4.2] (2018-10-29)
 
   * update pipfile.lock
