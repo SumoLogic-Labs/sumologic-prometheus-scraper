@@ -253,16 +253,12 @@ class SumoPrometheusScraper:
                     yield f"{name}{sanitize_labels(labels)} {value} {scrape_ts}"
 
     def _should_include(self, labels):
-        if not self._include_labels.items():
-            return True
         for key, value in self._include_labels.items():
-            if key in labels and re.match(value, labels[key]):
-                return True
-        return False
+            if key in labels and not re.match(value, labels[key]):
+                return False
+        return True
 
     def _should_exclude(self, labels):
-        if not self._exclude_labels.items():
-            return False
         for key, value in self._exclude_labels.items():
             if key in labels and re.match(value, labels[key]):
                 return True
@@ -284,24 +280,24 @@ class SumoPrometheusScraper:
 
     def _compress_and_send(self, batch):
         body = "\n".join(batch).encode("utf-8")
-        try:
-            resp = self._sumo_session.post(
-                self._config["sumo_http_url"],
-                data=gzip.compress(body, compresslevel=1),
-                headers={
-                    "Content-Type": "application/vnd.sumologic.prometheus",
-                    "Content-Encoding": "gzip",
-                    "X-Sumo-Client": "prometheus-scraper",
-                },
-            )
-            resp.raise_for_status()
-            log.info(
-                f"posting batch to Sumo logic for {self._config['name']} took {resp.elapsed.total_seconds()} seconds"
-            )
-        except requests.exceptions.HTTPError as http_error:
-            log.error(
-                f"unable to send batch for {self._config['name']} to Sumo Logic, got back response {resp.status_code} and error {http_error}"
-            )
+        # try:
+        #     resp = self._sumo_session.post(
+        #         self._config["sumo_http_url"],
+        #         data=gzip.compress(body, compresslevel=1),
+        #         headers={
+        #             "Content-Type": "application/vnd.sumologic.prometheus",
+        #             "Content-Encoding": "gzip",
+        #             "X-Sumo-Client": "prometheus-scraper",
+        #         },
+        #     )
+        #     resp.raise_for_status()
+        #     log.info(
+        #         f"posting batch to Sumo logic for {self._config['name']} took {resp.elapsed.total_seconds()} seconds"
+        #     )
+        # except requests.exceptions.HTTPError as http_error:
+        #     log.error(
+        #         f"unable to send batch for {self._config['name']} to Sumo Logic, got back response {resp.status_code} and error {http_error}"
+        #     )
 
     def run(self):
         start = int(time.time())

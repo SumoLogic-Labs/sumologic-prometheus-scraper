@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+# [2.5.1] (2018-11-09)
+
+  * fix filtering logic to support conditions where labels are not present
+
 # [2.5.0] (2018-11-02)
 
   * Add Support for Sumo Logic Prometheus Content Type
