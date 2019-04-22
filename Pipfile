@@ -4,12 +4,16 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-apscheduler = "*"
-asyncio = "*"
-click = "*"
-prometheus-client = "*"
-requests = "*"
-voluptuous = "*"
+apscheduler = "==3.5.3"
+asyncio = "==3.4.3"
+certifi = "==2018.10.15"
+click = "==7.0"
+prometheus-client = "==0.4.2"
+pytz = "==2018.7"
+requests = "==2.20.0"
+six = "==1.12.0"
+urllib3 = "==1.24.2"
+voluptuous = "==0.11.5"
 
 [dev-packages]
 black = "*"
