@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+# [2.5.2] (2019-04-22)
+
+  * lock dependencies, upgrade urllib3 to fix security vulnerability
+
 # [2.5.1] (2018-11-09)
 
   * fix filtering logic to support conditions where labels are not present
