@@ -6,7 +6,7 @@ name = "pypi"
 [packages]
 apscheduler = "==3.5.3"
 asyncio = "==3.4.3"
-certifi = "==2018.10.15"
+certifi = "==2022.12.7"
 click = "==7.0"
 prometheus-client = "==0.4.2"
 pytz = "==2018.7"
